@@ -7,9 +7,9 @@ import features from './features.png';
 import dashillu from './dashboardillu.png';
 import notice from './Notice.png';
 import contact from './contact.png';
-
+import login from './login.png';
 export const assets = {
   hero,student,packing,
   about,features,dashillu,
-  notice,contact
+  notice,contact,login
 }
