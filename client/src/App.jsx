@@ -8,6 +8,7 @@ import About from './pages/About'
 import Feature from './pages/Feature'
 import Notice from './components/Notice'
 import Contact from './pages/Contact'
+import StudentLogin from './pages/StudentLogin'
 
 const App = () => {
   return (
@@ -22,6 +23,8 @@ const App = () => {
       <Route path='/features' element={<Feature/>}/>
       <Route path='/notice' element={<Notice/>}/>
       <Route path='/contact' element={<Contact/>}/>
+      {/* student section */}
+      <Route path='/student-login' element={<StudentLogin/>}/>
      </Routes>
      <Footer/>
     </>

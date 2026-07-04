@@ -72,7 +72,7 @@ const Navbar = () => {
                 </button>
 
 
-                <button className='flex flex-row gap-1.5 items-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors duration-200 cursor-pointer text-sm shadow-md shadow-blue-600/10'>
+                <button  onClick={()=>navigate('/student-login')} className='flex flex-row gap-1.5 items-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors duration-200 cursor-pointer text-sm shadow-md shadow-blue-600/10'>
                     <GraduationCap size={18} />
                     Student Login
                 </button>
@@ -136,7 +136,9 @@ const Navbar = () => {
                         <button className='flex justify-center items-center gap-2 w-full px-4 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors'>
                             <Users size={18} /> Staff Portal
                         </button>
-                        <button className='flex justify-center items-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm hover:bg-blue-700 transition-colors'>
+                        <button 
+                            onClick={()=>navigate('/student-login')}
+                            className='flex justify-center items-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm hover:bg-blue-700 transition-colors'>
                             <GraduationCap size={18} /> Student Login
                         </button>
                     </div>
