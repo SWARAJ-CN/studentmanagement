@@ -17,8 +17,11 @@ import {
 } from 'lucide-react'
 import { assets } from '../assets/assets'
 import { useNavigate } from 'react-router-dom'
+import { students } from '../assets/dummy';
+import toast from 'react-hot-toast';
 
 const StudentLogin = () => {
+
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [credentials, setCredentials] = useState({
@@ -26,11 +29,19 @@ const StudentLogin = () => {
     password: '',
     rememberMe: false
   })
+  
 
   const handleLoginSubmit = (e) => {
     e.preventDefault()
-    console.log('Logging in student with:', credentials)
+   
+    if(credentials.identifier === students[0]?.student_id && credentials.password === students[0].student_pass){
+    toast.success(`welcome back ${students[0]?.student_name}`)
+    navigate('/student-dashboard')
+    }else{
+      toast.error('invalid credentials')
+    }
   }
+  
 
   return (
     <div className='w-full min-h-screen bg-[#F8FAFC] pt-20 pb-12 text-slate-800 font-sans flex items-center justify-center selection:bg-blue-100 selection:text-blue-800'>
