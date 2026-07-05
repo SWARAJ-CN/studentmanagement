@@ -36,7 +36,7 @@ const TeacherTopbar = () => {
           <input
             type="text"
             placeholder="Search students, classes, assignments..."
-            className="w-full h-12 pl-12 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-600 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+            className="shadow-sm w-full h-12 pl-12 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-600 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
           />
         </div>
       </div>

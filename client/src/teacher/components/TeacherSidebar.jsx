@@ -82,7 +82,6 @@ const TeacherSidebar = () => {
 
   return (
     <div className="fixed left-0 top-0 h-screen w-[275px] bg-gradient-to-b from-[#001b4d] via-[#002b75] to-[#003b91] text-white px-4 py-5 overflow-y-auto z-50">
-
       <div className="flex items-center gap-3 mb-8">
         <div className="w-16 h-16 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center shrink-0">
           <FaGraduationCap className="text-4xl text-white" />
