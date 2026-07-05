@@ -80,7 +80,7 @@ const Navbar = () => {
 
                 {showStaffDropdown && (
                     <div className='absolute right-full mr-2 top-0 mt-0 w-48 bg-white border border-slate-100 rounded-2xl p-2 shadow-xl shadow-slate-200/80 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150'>
-                        <button
+                        <button 
                             onClick={() => { navigate('/login/teachers'); setShowStaffDropdown(false); }}
                             className='flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 font-medium text-sm text-left transition-colors'
                         >
