@@ -11,6 +11,9 @@ import Notice from './components/Notice';
 import Contact from './pages/Contact';
 import StudentLogin from './pages/StudentLogin';
 import StudentDash from './pages/StudentDash';
+import TeacherLogin from './teacher/pages/TeacherLogin';
+import TeacherDashboard from './teacher/pages/TeacherDashboard';
+import TeacherLayout from './teacher/components/TeacherLayout';
 
 const App = () => {
 
@@ -38,9 +41,13 @@ const App = () => {
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/student-dashboard" element={<StudentDash />} />
 
-        {/* Teacher */}
+         {/* teacher login page */}
         <Route path="/teacher-login" element={<TeacherLogin />} />
-        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+
+        {/* teacher */}
+        <Route path="/teacher" element={<TeacherLayout />}>
+          <Route path="dashboard" element={<TeacherDashboard />} />
+        </Route>
       </Routes>
 
       {!hideLayout && <Footer />}
