@@ -15,5 +15,9 @@
   ],
   "profile": {
     "name": "typicode"
+  },
+  "teachers":{
+    "id": "TEACHER01",
+    "password" : "12345678"
   }
 }

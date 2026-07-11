@@ -14,6 +14,14 @@ import StudentDash from './pages/StudentDash';
 import TeacherLogin from './teacher/pages/TeacherLogin';
 import TeacherDashboard from './teacher/pages/TeacherDashboard';
 import TeacherLayout from './teacher/components/TeacherLayout';
+import TeacherProfile from './teacher/pages/TeacherProfile';
+import MyClasses from './teacher/pages/MyClasses';
+import TeacherStudents from './teacher/pages/TeacherStudents';
+import TeacherAttendance from './teacher/pages/TeacherAttendance';
+import TeacherExams from './teacher/pages/TeacherExams';
+import TeacherResults from './teacher/pages/TeacherResults';
+import TeacherTimetable from './teacher/pages/TeacherTimetable';
+import TeacherNotices from "./teacher/pages/TeacherNotices";
 
 const App = () => {
 
@@ -47,6 +55,14 @@ const App = () => {
         {/* teacher */}
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route path="dashboard" element={<TeacherDashboard />} />
+          <Route path="profile" element={<TeacherProfile />} />
+          <Route path="classes" element={<MyClasses />} />
+          <Route path="students" element={<TeacherStudents />} />
+          <Route path="attendance" element={<TeacherAttendance />} />
+          <Route path="exams" element={<TeacherExams />} />
+          <Route path="results" element={<TeacherResults />} />
+          <Route path="timetable" element={<TeacherTimetable />} />
+          <Route path="notices" element={<TeacherNotices />} />
         </Route>
       </Routes>
 
