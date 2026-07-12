@@ -6,12 +6,10 @@ import { FaRegUser } from "react-icons/fa";
 import { HiOutlineBookOpen } from "react-icons/hi";
 import { LuUsersRound } from "react-icons/lu";
 import { FaRegCalendarCheck } from "react-icons/fa";
-import { IoDocumentOutline } from "react-icons/io5";
 import { FaClipboardList } from "react-icons/fa";
 import { MdBarChart } from "react-icons/md";
 import { PiTable } from "react-icons/pi";
 import { IoMegaphoneOutline } from "react-icons/io5";
-import { IoSettingsOutline } from "react-icons/io5";
 
 const TeacherSidebar = () => {
   const sidebarLinks = [
@@ -41,11 +39,6 @@ const TeacherSidebar = () => {
       icon: <FaRegCalendarCheck />,
     },
     {
-      path: "/teacher/assignments",
-      label: "Assignments",
-      icon: <IoDocumentOutline />,
-    },
-    {
       path: "/teacher/exams",
       label: "Exams",
       icon: <FaClipboardList />,
@@ -65,11 +58,6 @@ const TeacherSidebar = () => {
       label: "Notices",
       icon: <IoMegaphoneOutline />,
       badge: 2,
-    },
-    {
-      path: "/teacher/settings",
-      label: "Settings",
-      icon: <IoSettingsOutline />,
     },
   ];
 

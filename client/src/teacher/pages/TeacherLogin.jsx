@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -27,12 +29,22 @@ const TeacherLogin = () => {
     e.preventDefault();
 
     if (!teacherId || !password) {
-      alert("Please enter Teacher ID/Email and password");
+      toast.error("Please enter Teacher ID and password");
       return;
     }
-    navigate("/teacher/dashboard");
 
-    console.log({ teacherId, password, rememberMe });
+    // Temporary login for testing teacher side
+    localStorage.setItem("teacherAuth", "true");
+    localStorage.setItem("teacherId", teacherId);
+
+    if (rememberMe) {
+      localStorage.setItem("rememberTeacher", "true");
+    } else {
+      localStorage.removeItem("rememberTeacher");
+    }
+
+    toast.success("Teacher login successful");
+    navigate("/teacher/dashboard");
   };
 
   const leftFeatures = [
@@ -100,7 +112,7 @@ const TeacherLogin = () => {
           <div className="absolute bottom-10 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl -z-0"></div>
 
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* left content */}
+            {/* Left Content */}
             <div className="lg:col-span-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-tight">
                 Teacher Login
@@ -136,7 +148,7 @@ const TeacherLogin = () => {
               </div>
             </div>
 
-            {/* center image */}
+            {/* Center Image */}
             <div className="lg:col-span-4 flex justify-center">
               <img
                 src={teacherLoginImg}
@@ -145,7 +157,7 @@ const TeacherLogin = () => {
               />
             </div>
 
-            {/* login form */}
+            {/* Login Form */}
             <div className="lg:col-span-4 flex justify-center lg:justify-end">
               <div className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-xl shadow-blue-200/50 border border-white p-7 sm:p-8">
                 <div className="flex justify-center">
@@ -170,16 +182,17 @@ const TeacherLogin = () => {
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div>
                     <label className="block text-sm font-bold text-slate-800 mb-2">
-                      Teacher ID or Email
+                      Teacher ID
                     </label>
 
                     <div className="relative">
                       <FaIdCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+
                       <input
                         type="text"
                         value={teacherId}
                         onChange={(e) => setTeacherId(e.target.value)}
-                        placeholder="Enter Teacher ID or Email"
+                        placeholder="Enter Teacher ID"
                         className="w-full h-12 pl-12 pr-4 rounded-xl border border-slate-200 outline-none text-sm text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
                     </div>
@@ -192,6 +205,7 @@ const TeacherLogin = () => {
 
                     <div className="relative">
                       <CiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl" />
+
                       <input
                         type="password"
                         value={password}
@@ -247,7 +261,7 @@ const TeacherLogin = () => {
             </div>
           </div>
 
-          {/* bottom feature */}
+          {/* Bottom Features */}
           <div className="relative z-10 mt-10 max-w-7xl mx-auto bg-white rounded-3xl shadow-xl shadow-blue-200/40 border border-slate-100 px-5 py-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {bottomFeatures.map((item, index) => (

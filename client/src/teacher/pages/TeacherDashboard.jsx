@@ -10,6 +10,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  LabelList,
 } from "recharts";
 
 import { HiOutlineBookOpen } from "react-icons/hi";
@@ -17,7 +18,6 @@ import { LuUsersRound } from "react-icons/lu";
 import { FaRegCalendarCheck } from "react-icons/fa";
 import { FaClipboardList } from "react-icons/fa";
 import { MdBarChart } from "react-icons/md";
-import { PiTable } from "react-icons/pi";
 import { IoMegaphoneOutline } from "react-icons/io5";
 import { IoDocumentOutline } from "react-icons/io5";
 
@@ -70,9 +70,9 @@ const TeacherDashboard = () => {
   ];
 
   const attendanceData = [
-    { name: "Present", value: 116, color: "#22c55e" },
-    { name: "Late", value: 6, color: "#f59e0b" },
-    { name: "Absent", value: 4, color: "#ef4444" },
+    { name: "Present", value: 116, percentage: "92.6%", color: "#22c55e" },
+    { name: "Late", value: 6, percentage: "4.8%", color: "#f59e0b" },
+    { name: "Absent", value: 4, percentage: "2.6%", color: "#ef4444" },
   ];
 
   const todaysTimetable = [
@@ -115,6 +115,37 @@ const TeacherDashboard = () => {
       room: "Lab 1",
       status: "Upcoming",
       statusColor: "bg-slate-100 text-slate-500",
+    },
+  ];
+
+  const classOverview = [
+    {
+      className: "Class 10A",
+      subject: "Science",
+      students: 32,
+      attendance: "96%",
+      performance: "85%",
+    },
+    {
+      className: "Class 9B",
+      subject: "Biology",
+      students: 28,
+      attendance: "92%",
+      performance: "81%",
+    },
+    {
+      className: "Class 8A",
+      subject: "Science",
+      students: 30,
+      attendance: "89%",
+      performance: "78%",
+    },
+    {
+      className: "Class 10B",
+      subject: "Science",
+      students: 36,
+      attendance: "94%",
+      performance: "83%",
     },
   ];
 
@@ -161,40 +192,8 @@ const TeacherDashboard = () => {
     },
   ];
 
-  const classOverview = [
-    {
-      className: "Class 10A",
-      subject: "Science",
-      students: 32,
-      attendance: "96%",
-      performance: "85%",
-    },
-    {
-      className: "Class 9B",
-      subject: "Biology",
-      students: 28,
-      attendance: "92%",
-      performance: "81%",
-    },
-    {
-      className: "Class 8A",
-      subject: "Science",
-      students: 30,
-      attendance: "89%",
-      performance: "78%",
-    },
-    {
-      className: "Class 10B",
-      subject: "Science",
-      students: 36,
-      attendance: "94%",
-      performance: "83%",
-    },
-  ];
-
   return (
-    <div className="w-full max-w-none space-y-6">
-      {/* Header */}
+    <div className="w-full space-y-6 pb-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-slate-900">
@@ -214,7 +213,6 @@ const TeacherDashboard = () => {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {statsCards.map((card, index) => (
           <div
@@ -223,7 +221,7 @@ const TeacherDashboard = () => {
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-16 h-16 rounded-full ${card.bg} text-white flex items-center justify-center text-3xl`}
+                className={`w-16 h-16 rounded-full ${card.bg} text-white flex items-center justify-center text-3xl shrink-0`}
               >
                 {card.icon}
               </div>
@@ -242,7 +240,7 @@ const TeacherDashboard = () => {
             </div>
 
             <div
-              className={`w-12 h-12 rounded-xl ${card.lightBg} ${card.text} flex items-center justify-center text-2xl`}
+              className={`w-12 h-12 rounded-xl ${card.lightBg} ${card.text} flex items-center justify-center text-2xl shrink-0`}
             >
               {card.icon}
             </div>
@@ -250,7 +248,6 @@ const TeacherDashboard = () => {
         ))}
       </div>
 
-      {/* Charts and timetable */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <div className="xl:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-5">
@@ -265,37 +262,117 @@ const TeacherDashboard = () => {
             </select>
           </div>
 
-          <div className="h-[260px]">
+          <div className="flex items-center gap-6 mb-3 text-xs font-semibold text-slate-500">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-[3px] bg-blue-600 rounded-full"></span>
+              <span>Your Classes Average</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-[3px] border-t-2 border-dashed border-slate-400"></span>
+              <span>School Average</span>
+            </div>
+          </div>
+
+          <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={performanceData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} domain={[50, 100]} />
-                <Tooltip />
+              <LineChart
+                data={performanceData}
+                margin={{ top: 25, right: 25, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="4 4"
+                  vertical={false}
+                  stroke="#e2e8f0"
+                />
+
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  tickLine={false}
+                  dy={8}
+                />
+
+                <YAxis
+                  domain={[50, 100]}
+                  ticks={[50, 75, 100]}
+                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => `${value}%`}
+                />
+
+                <Tooltip
+                  formatter={(value, name) => [
+                    `${value}%`,
+                    name === "yourClass"
+                      ? "Your Classes Average"
+                      : "School Average",
+                  ]}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
+                  }}
+                />
+
                 <Line
                   type="monotone"
                   dataKey="yourClass"
                   stroke="#2563eb"
                   strokeWidth={3}
-                  dot={{ r: 5 }}
-                  name="Your Class Average"
-                />
+                  dot={{
+                    r: 5,
+                    fill: "#ffffff",
+                    stroke: "#2563eb",
+                    strokeWidth: 3,
+                  }}
+                  activeDot={{ r: 7 }}
+                >
+                  <LabelList
+                    dataKey="yourClass"
+                    position="top"
+                    formatter={(value) => `${value}%`}
+                    style={{
+                      fill: "#0f172a",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Line>
+
                 <Line
                   type="monotone"
                   dataKey="schoolAvg"
                   stroke="#94a3b8"
                   strokeWidth={3}
-                  strokeDasharray="5 5"
-                  dot={{ r: 5 }}
-                  name="School Average"
-                />
+                  strokeDasharray="6 6"
+                  dot={{
+                    r: 4,
+                    fill: "#ffffff",
+                    stroke: "#94a3b8",
+                    strokeWidth: 2,
+                  }}
+                >
+                  <LabelList
+                    dataKey="schoolAvg"
+                    position="bottom"
+                    formatter={(value) => `${value}%`}
+                    style={{
+                      fill: "#475569",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Line>
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-black text-slate-900">
               Attendance Overview
             </h2>
@@ -307,53 +384,52 @@ const TeacherDashboard = () => {
             </select>
           </div>
 
-          <div className="grid grid-cols-1 2xl:grid-cols-2 items-center gap-4">
-            <div className="h-[230px] relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={attendanceData}
-                    innerRadius={65}
-                    outerRadius={95}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {attendanceData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+          <div className="h-[270px] relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={attendanceData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={78}
+                  outerRadius={115}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {attendanceData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <h3 className="text-3xl font-black text-slate-900">92.6%</h3>
-                <p className="text-sm text-slate-500 font-medium">Overall</p>
-              </div>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <h3 className="text-3xl font-black text-slate-900">92.6%</h3>
+              <p className="text-sm text-slate-500 font-medium">Overall</p>
             </div>
+          </div>
 
-            <div className="space-y-4">
-              {attendanceData.map((item, index) => (
-                <div key={index} className="flex items-start gap-3">
+          <div className="grid grid-cols-3 gap-3 mt-3 border-t border-slate-100 pt-4">
+            {attendanceData.map((item, index) => (
+              <div key={index} className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
                   <span
-                    className="w-3 h-3 rounded-full mt-1.5"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: item.color }}
                   ></span>
-
-                  <div>
-                    <h4 className="font-bold text-slate-800">{item.name}</h4>
-                    <p className="text-sm text-slate-500">
-                      {item.value}{" "}
-                      {item.name === "Present"
-                        ? "(92.6%)"
-                        : item.name === "Late"
-                        ? "(4.8%)"
-                        : "(2.6%)"}
-                    </p>
-                  </div>
+                  <h4 className="font-bold text-slate-800 text-sm">
+                    {item.name}
+                  </h4>
                 </div>
-              ))}
-            </div>
+
+                <p className="text-sm font-semibold text-slate-700">
+                  {item.value}
+                </p>
+                <p className="text-xs text-slate-500">({item.percentage})</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -372,7 +448,7 @@ const TeacherDashboard = () => {
             {todaysTimetable.map((item) => (
               <div
                 key={item.period}
-                className="grid grid-cols-[35px_1fr] gap-3 items-center border-b border-slate-100 pb-3 last:border-b-0"
+                className="grid grid-cols-[36px_1fr] gap-3 items-center border-b border-slate-100 pb-3 last:border-b-0"
               >
                 <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-sm font-bold">
                   {item.period}
@@ -383,9 +459,9 @@ const TeacherDashboard = () => {
                     {item.time}
                   </p>
 
-                  <div className="flex items-center justify-between gap-2 mt-1">
+                  <div className="flex items-start justify-between gap-2 mt-1">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">
+                      <h4 className="text-sm font-bold text-slate-900 leading-5">
                         {item.subject}
                       </h4>
                       <p className="text-xs text-slate-500">{item.room}</p>
@@ -404,7 +480,6 @@ const TeacherDashboard = () => {
         </div>
       </div>
 
-      {/* Class Overview and Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <div className="xl:col-span-7 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-5">
@@ -505,49 +580,6 @@ const TeacherDashboard = () => {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pb-4">
-        <div className="bg-blue-600 rounded-2xl p-5 text-white flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-3xl">
-            <PiTable />
-          </div>
-          <div>
-            <h3 className="font-black text-lg">View Timetable</h3>
-            <p className="text-sm text-blue-100">
-              Check today's classes and room details.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-3xl">
-            <FaRegCalendarCheck />
-          </div>
-          <div>
-            <h3 className="font-black text-lg text-slate-900">
-              Mark Attendance
-            </h3>
-            <p className="text-sm text-slate-500">
-              Update student attendance quickly.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-3xl">
-            <IoMegaphoneOutline />
-          </div>
-          <div>
-            <h3 className="font-black text-lg text-slate-900">
-              School Notices
-            </h3>
-            <p className="text-sm text-slate-500">
-              View latest school announcements.
-            </p>
           </div>
         </div>
       </div>
