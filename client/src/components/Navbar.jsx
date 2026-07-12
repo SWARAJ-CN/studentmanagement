@@ -81,14 +81,14 @@ const Navbar = () => {
                 {showStaffDropdown && (
                     <div className='absolute right-full mr-2 top-0 mt-0 w-48 bg-white border border-slate-100 rounded-2xl p-2 shadow-xl shadow-slate-200/80 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150'>
                         <button 
-                            onClick={() => { navigate('/teacher-login'); setShowStaffDropdown(false); }}
+                            onClick={() => { navigate('/login/teachers'); setShowStaffDropdown(false); }}
                             className='flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 font-medium text-sm text-left transition-colors'
                         >
                             <Users size={16} className='text-slate-400' /> Teachers
                         </button>
 
                         <button
-                            onClick={() => { navigate('/login/principal'); setShowStaffDropdown(false); }}
+                            onClick={() => { navigate('/principal-login'); setShowStaffDropdown(false); }}
                             className='flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 font-medium text-sm text-left transition-colors'
                         >
                             <ShieldAlert size={16} className='text-slate-400' /> Principal

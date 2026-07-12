@@ -13,9 +13,23 @@ import StudentLogin from './pages/StudentLogin';
 import StudentDash from './pages/StudentDash';
 import TeacherLogin from './teacher/pages/TeacherLogin';
 
-import TeacherLayout from './teacher/components/TeacherLayout';
+// import TeacherLayout from './teacher/components/TeacherLayout';
 import TeacherDashboard from './teacher/pages/TeacherDashboard';
 import TeacherLayout from './teacher/components/TeacherLayout';
+import TeacherProfile from './teacher/pages/TeacherProfile'
+import MyClasses from './teacher/pages/MyClasses'
+import TeacherStudents from './teacher/pages/TeacherStudents';
+import TeacherAttendance from './teacher/pages/TeacherAttendance';
+import TeacherExams from './teacher/pages/TeacherExams';
+import TeacherResults from './teacher/pages/TeacherAttendance';
+import TeacherTimetable from './teacher/pages/TeacherTimetable';
+import TeacherNotices from './teacher/pages/TeacherNotices';
+
+// principale 
+import PrincipalLogin from './principal/pages/PrincipalLogin';
+import PrincipalRegister from './principal/pages/PrincipalRegister';
+import Dashboard from './principal/pages/Dashboard';
+
 
 const App = () => {
 
@@ -23,8 +37,9 @@ const App = () => {
 
   const isStudent = location.pathname.startsWith("/student");
   const isTeacher = location.pathname.startsWith("/teacher");
+  const isPrincipal = location.pathname.startsWith("/principal");
 
-  const hideLayout = isStudent || isTeacher;
+  const hideLayout = isStudent || isTeacher || isPrincipal;
 
   return (
     <>
@@ -49,7 +64,7 @@ const App = () => {
         {/* teacher */}
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route path="dashboard" element={<TeacherDashboard />} />
-          <Route path="profile" element={<TeacherProfile />} />
+          <Route path="profile" element={<TeacherProfile/>} />
           <Route path="classes" element={<MyClasses />} />
           <Route path="students" element={<TeacherStudents />} />
           <Route path="attendance" element={<TeacherAttendance />} />
@@ -58,6 +73,14 @@ const App = () => {
           <Route path="timetable" element={<TeacherTimetable />} />
           <Route path="notices" element={<TeacherNotices />} />
         </Route>
+
+         {/* Principal-login */}
+        <Route path='/principal-login' element={<PrincipalLogin/>}/>
+        {/* Principal Register */}
+        <Route path='/principal-register' element={<PrincipalRegister/>}/>
+
+        {/* Principal Dashboard */}
+        <Route path='/principal-dashboard' element={<Dashboard/>}/>
       </Routes>
 
       {!hideLayout && <Footer />}
