@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { FaGraduationCap } from "react-icons/fa";
 
@@ -11,7 +11,128 @@ import { MdBarChart } from "react-icons/md";
 import { PiTable } from "react-icons/pi";
 import { IoMegaphoneOutline } from "react-icons/io5";
 
+import { getNoticeAPI, getTeacherAPI } from "../../services/allAPI";
+
 const TeacherSidebar = () => {
+  const [teacherClasses, setTeacherClasses] = useState([]);
+  const [noticesList, setNoticesList] = useState([]);
+
+  const normalizeClassName = (value = "") => {
+    const cleanValue = String(value).trim().toUpperCase().replace(/\s+/g, "");
+
+    if (!cleanValue) return "";
+
+    if (cleanValue.startsWith("CLASS")) return cleanValue;
+
+    return `CLASS${cleanValue}`;
+  };
+
+  const normalizeAssignedClasses = (teacher) => {
+    if (!teacher) return [];
+
+    if (Array.isArray(teacher.assignedClasses)) {
+      return teacher.assignedClasses
+        .map((item) => {
+          if (typeof item === "string") return item;
+          return item.className || item.class || item.classSection || "";
+        })
+        .filter(Boolean);
+    }
+
+    if (teacher.class) {
+      return teacher.class
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  };
+
+  const normalizeNotice = (notice) => {
+    return {
+      id: notice.id,
+      title: notice.title || "",
+      description: notice.description || notice.content || "",
+      category: notice.category || "General",
+      audience: notice.audience || "All",
+      status: notice.status || "Active",
+      date: notice.date || notice.createdAt || "",
+    };
+  };
+
+  const getLoggedTeacher = async () => {
+    const loggedTeacherId = localStorage.getItem("teacherId");
+    const storedTeacher = localStorage.getItem("teacherData");
+
+    if (storedTeacher) {
+      try {
+        const parsedTeacher = JSON.parse(storedTeacher);
+        setTeacherClasses(normalizeAssignedClasses(parsedTeacher));
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    const result = await getTeacherAPI();
+
+    if (result?.status >= 200 && result?.status < 300) {
+      const teachers = Array.isArray(result.data) ? result.data : [];
+
+      const foundTeacher = teachers.find((teacher) => {
+        const teacherId = teacher.teacherId || teacher.teacher_id || "";
+        const id = teacher.id || "";
+
+        return (
+          String(teacherId) === String(loggedTeacherId) ||
+          String(id) === String(loggedTeacherId)
+        );
+      });
+
+      if (foundTeacher) {
+        setTeacherClasses(normalizeAssignedClasses(foundTeacher));
+
+        localStorage.setItem("teacherData", JSON.stringify(foundTeacher));
+        localStorage.setItem(
+          "teacherId",
+          foundTeacher.teacherId || foundTeacher.teacher_id || foundTeacher.id
+        );
+      }
+    }
+  };
+
+  const getAllNotices = async () => {
+    const result = await getNoticeAPI();
+
+    if (result?.status >= 200 && result?.status < 300) {
+      setNoticesList(Array.isArray(result.data) ? result.data : []);
+    }
+  };
+
+  useEffect(() => {
+    getLoggedTeacher();
+    getAllNotices();
+  }, []);
+
+  const noticeCount = useMemo(() => {
+    return noticesList
+      .map((notice) => normalizeNotice(notice))
+      .filter((notice) => {
+        if (notice.status !== "Active") return false;
+
+        const audience = String(notice.audience || "").trim().toLowerCase();
+
+        if (audience === "all") return true;
+        if (audience === "teachers") return true;
+        if (audience === "teacher") return true;
+
+        return teacherClasses.some(
+          (className) =>
+            normalizeClassName(className) === normalizeClassName(notice.audience)
+        );
+      }).length;
+  }, [noticesList, teacherClasses]);
+
   const sidebarLinks = [
     {
       path: "/teacher/dashboard",
@@ -57,7 +178,7 @@ const TeacherSidebar = () => {
       path: "/teacher/notices",
       label: "Notices",
       icon: <IoMegaphoneOutline />,
-      badge: 2,
+      badge: noticeCount,
     },
   ];
 
@@ -76,7 +197,7 @@ const TeacherSidebar = () => {
         </div>
 
         <div>
-          <h1 className="font-black text-lg leading-tight">ST MARY'S</h1>
+          <h1 className="font-black text-lg leading-tight">ST MARY&apos;S</h1>
           <p className="text-sm font-semibold leading-tight text-blue-100">
             Student
             <br />
@@ -92,8 +213,8 @@ const TeacherSidebar = () => {
 
             <span className="flex-1">{link.label}</span>
 
-            {link.badge && (
-              <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">
+            {link.badge > 0 && (
+              <span className="min-w-6 h-6 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold border border-white/30">
                 {link.badge}
               </span>
             )}

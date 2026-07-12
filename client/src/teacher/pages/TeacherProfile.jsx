@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import { HiOutlineBookOpen } from "react-icons/hi";
 import { LuUsersRound } from "react-icons/lu";
@@ -15,24 +15,171 @@ import {
   IoSchoolOutline,
   IoBookOutline,
   IoCreateOutline,
+  IoCloseOutline,
 } from "react-icons/io5";
 
+import { getTeacherAPI, updateTeacherAPI } from "../../services/allAPI";
+import toast from "react-hot-toast";
+
 const TeacherProfile = () => {
+  const [teacher, setTeacher] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState({});
+
+  const normalizeAssignedClasses = (teacherData) => {
+    if (!teacherData) return [];
+
+    if (Array.isArray(teacherData.assignedClasses)) {
+      return teacherData.assignedClasses
+        .map((item) => {
+          if (typeof item === "string") {
+            return {
+              className: item,
+              subject:
+                teacherData.subject?.split(",")[0]?.trim() ||
+                "Subject not added",
+            };
+          }
+
+          return {
+            className: item.className || item.class || item.classSection || "",
+            subject: item.subject || teacherData.subject || "",
+          };
+        })
+        .filter((item) => item.className && item.subject);
+    }
+
+    if (teacherData.class) {
+      const classes = teacherData.class
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const subjects = teacherData.subject
+        ? teacherData.subject.split(",").map((item) => item.trim())
+        : [];
+
+      return classes.map((className, index) => ({
+        className,
+        subject: subjects[index] || subjects[0] || "Subject not added",
+      }));
+    }
+
+    return [];
+  };
+
+  const getUniqueSubjects = (assignedClasses) => {
+    return [...new Set(assignedClasses.map((item) => item.subject))];
+  };
+
+  const formatJoinedDate = (createdAt) => {
+    if (!createdAt) return "Not added";
+
+    const date = new Date(createdAt);
+
+    if (isNaN(date.getTime())) return createdAt;
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const getLoggedTeacher = async () => {
+    const loggedTeacherId = localStorage.getItem("teacherId");
+
+    const result = await getTeacherAPI();
+
+    if (result?.status >= 200 && result?.status < 300) {
+      const foundTeacher = result.data.find(
+        (item) => item.teacherId === loggedTeacherId
+      );
+
+      if (foundTeacher) {
+        setTeacher(foundTeacher);
+        localStorage.setItem("teacherData", JSON.stringify(foundTeacher));
+      }
+    }
+  };
+
+  useEffect(() => {
+    getLoggedTeacher();
+  }, []);
+
+  const openEditModal = () => {
+    setEditData({
+      name: teacher?.name || "",
+      photo: teacher?.photo || "",
+      email: teacher?.email || "",
+      contact: teacher?.contact || "",
+      location: teacher?.location || "",
+      department: teacher?.department || "",
+      designation: teacher?.designation || "",
+      experience: teacher?.experience || "",
+      status: teacher?.status || "Active",
+    });
+
+    setEditOpen(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+
+    setEditData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+
+    const updatedTeacher = {
+      ...teacher,
+      ...editData,
+    };
+
+    const result = await updateTeacherAPI(teacher.id, updatedTeacher);
+
+    if (result?.status >= 200 && result?.status < 300) {
+      toast.success("Profile updated successfully");
+      setTeacher(result.data);
+      localStorage.setItem("teacherData", JSON.stringify(result.data));
+      setEditOpen(false);
+    } else {
+      toast.error("Failed to update profile");
+    }
+  };
+
+  if (!teacher) {
+    return (
+      <div className="w-full min-h-[400px] flex items-center justify-center">
+        <p className="text-slate-500 font-semibold">
+          Loading teacher profile...
+        </p>
+      </div>
+    );
+  }
+
+  const assignedClasses = normalizeAssignedClasses(teacher);
+  const uniqueSubjects = getUniqueSubjects(assignedClasses);
+
   const statsCards = [
     {
       title: "Total Classes",
-      value: "5",
-      desc: "1 new this term",
+      value: assignedClasses.length || 0,
+      desc: "assigned classes",
       icon: <HiOutlineBookOpen />,
       bg: "bg-blue-600",
       lightBg: "bg-blue-50",
       text: "text-blue-600",
     },
     {
-      title: "Total Students",
-      value: "126",
-      desc: "6 new this month",
-      icon: <LuUsersRound />,
+      title: "Subjects Handled",
+      value: uniqueSubjects.length || 0,
+      desc: "active subjects",
+      icon: <IoBookOutline />,
       bg: "bg-purple-600",
       lightBg: "bg-purple-50",
       text: "text-purple-600",
@@ -59,121 +206,69 @@ const TeacherProfile = () => {
 
   const personalInfo = [
     {
-      label: "Date of Birth",
-      value: "May 12, 1989",
-      icon: <IoCalendarOutline />,
-    },
-    {
-      label: "Gender",
-      value: "Female",
+      label: "Teacher ID",
+      value: teacher.teacherId || "N/A",
       icon: <IoPersonOutline />,
     },
     {
-      label: "Marital Status",
-      value: "Married",
-      icon: <IoPersonOutline />,
+      label: "Phone",
+      value: teacher.contact || "N/A",
+      icon: <IoCallOutline />,
     },
     {
-      label: "Languages Known",
-      value: "English, Tamil, Hindi",
-      icon: <IoBookOutline />,
+      label: "Email",
+      value: teacher.email || "N/A",
+      icon: <IoMailOutline />,
+    },
+    {
+      label: "Location",
+      value: teacher.location || "N/A",
+      icon: <IoLocationOutline />,
     },
   ];
 
   const professionalInfo = [
     {
-      label: "Teacher ID",
-      value: "TCH-ST-0247",
-      icon: <IoPersonOutline />,
-    },
-    {
       label: "Department",
-      value: "Science Department",
+      value: teacher.department || "N/A",
       icon: <IoBriefcaseOutline />,
     },
     {
       label: "Designation",
-      value: "Science Teacher",
+      value:
+        teacher.designation ||
+        `${uniqueSubjects[0] || teacher.subject || "Subject"} Teacher`,
       icon: <IoSchoolOutline />,
     },
     {
+      label: "Subjects",
+      value: uniqueSubjects.length > 0 ? uniqueSubjects.join(", ") : "N/A",
+      icon: <IoBookOutline />,
+    },
+    {
       label: "Joining Date",
-      value: "June 15, 2017",
+      value: formatJoinedDate(teacher.createdAt),
       icon: <IoCalendarOutline />,
-    },
-  ];
-
-  const subjects = [
-    {
-      subject: "Science",
-      classSection: "8A",
-      students: 32,
-      color: "bg-blue-100 text-blue-600",
-    },
-    {
-      subject: "Science",
-      classSection: "8B",
-      students: 29,
-      color: "bg-purple-100 text-purple-600",
-    },
-    {
-      subject: "Biology",
-      classSection: "9A",
-      students: 31,
-      color: "bg-green-100 text-green-600",
-    },
-    {
-      subject: "Biology",
-      classSection: "9B",
-      students: 26,
-      color: "bg-emerald-100 text-emerald-600",
-    },
-    {
-      subject: "Chemistry",
-      classSection: "10A",
-      students: 28,
-      color: "bg-orange-100 text-orange-500",
     },
   ];
 
   const qualifications = [
     {
-      degree: "M.Sc. in Chemistry",
-      university: "Bharathiar University, Coimbatore",
-      year: "2012",
-    },
-    {
-      degree: "B.Ed. (Science)",
-      university: "Tamil Nadu Teachers Education University",
-      year: "2014",
+      degree:
+        teacher.designation ||
+        `${uniqueSubjects[0] || teacher.subject || "Subject"} Teacher`,
+      university: teacher.department || "Department not added",
+      year: `${teacher.experience || 0} years experience`,
     },
   ];
 
   const schedule = [
-    {
-      day: "Mon",
-      time: "08:00 AM - 04:00 PM",
-    },
-    {
-      day: "Tue",
-      time: "08:00 AM - 04:00 PM",
-    },
-    {
-      day: "Wed",
-      time: "08:00 AM - 04:00 PM",
-    },
-    {
-      day: "Thu",
-      time: "08:00 AM - 04:00 PM",
-    },
-    {
-      day: "Fri",
-      time: "08:00 AM - 04:00 PM",
-    },
-    {
-      day: "Sat",
-      time: "08:00 AM - 12:00 PM",
-    },
+    { day: "Mon", time: "08:00 AM - 04:00 PM" },
+    { day: "Tue", time: "08:00 AM - 04:00 PM" },
+    { day: "Wed", time: "08:00 AM - 04:00 PM" },
+    { day: "Thu", time: "08:00 AM - 04:00 PM" },
+    { day: "Fri", time: "08:00 AM - 04:00 PM" },
+    { day: "Sat", time: "08:00 AM - 12:00 PM" },
   ];
 
   return (
@@ -186,7 +281,10 @@ const TeacherProfile = () => {
       </div>
 
       <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <button className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-500 text-blue-600 font-bold text-sm hover:bg-blue-50 transition-colors">
+        <button
+          onClick={openEditModal}
+          className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-500 text-blue-600 font-bold text-sm hover:bg-blue-50 transition-colors"
+        >
           <IoCreateOutline />
           Edit Profile
         </button>
@@ -194,22 +292,24 @@ const TeacherProfile = () => {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-center pr-0 xl:pr-36">
           <div className="xl:col-span-4 flex items-center gap-6">
             <img
-              src="https://i.pravatar.cc/200?img=47"
+              src={teacher.photo || "https://placehold.co/200"}
               alt="Teacher profile"
               className="w-36 h-36 rounded-full object-cover border-4 border-slate-100"
             />
 
             <div>
               <h2 className="text-2xl font-black text-slate-900">
-                Ms. Ananya Joseph
+                {teacher.name}
               </h2>
+
               <p className="text-blue-600 font-semibold mt-1">
-                Science Teacher
+                {teacher.designation ||
+                  `${uniqueSubjects[0] || teacher.subject || "Subject"} Teacher`}
               </p>
 
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-semibold text-slate-600">
-                <IoPersonOutline className="text-blue-600 text-5xl" />
-                Teacher ID: TCH-ST-0247
+                <IoPersonOutline className="text-blue-600 text-xl" />
+                Teacher ID: {teacher.teacherId}
               </div>
             </div>
           </div>
@@ -219,10 +319,11 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoMailOutline />
               </div>
+
               <div>
                 <p className="text-xs text-slate-500 font-semibold">Email</p>
                 <p className="text-sm font-bold text-slate-800">
-                  ananya.joseph@stmarys.edu.in
+                  {teacher.email || "N/A"}
                 </p>
               </div>
             </div>
@@ -231,10 +332,11 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoCallOutline />
               </div>
+
               <div>
                 <p className="text-xs text-slate-500 font-semibold">Phone</p>
                 <p className="text-sm font-bold text-slate-800">
-                  +91 98765 43210
+                  {teacher.contact || "N/A"}
                 </p>
               </div>
             </div>
@@ -243,10 +345,13 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoLocationOutline />
               </div>
+
               <div>
-                <p className="text-xs text-slate-500 font-semibold">Location</p>
+                <p className="text-xs text-slate-500 font-semibold">
+                  Location
+                </p>
                 <p className="text-sm font-bold text-slate-800">
-                  Coimbatore, Tamil Nadu, India
+                  {teacher.location || "N/A"}
                 </p>
               </div>
             </div>
@@ -257,12 +362,13 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoBriefcaseOutline />
               </div>
+
               <div>
                 <p className="text-xs text-slate-500 font-semibold">
                   Department
                 </p>
                 <p className="text-sm font-bold text-slate-800">
-                  Science Department
+                  {teacher.department || "N/A"}
                 </p>
               </div>
             </div>
@@ -271,11 +377,14 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoSchoolOutline />
               </div>
+
               <div>
                 <p className="text-xs text-slate-500 font-semibold">
                   Years of Experience
                 </p>
-                <p className="text-sm font-bold text-slate-800">7 Years</p>
+                <p className="text-sm font-bold text-slate-800">
+                  {teacher.experience || "0"} Years
+                </p>
               </div>
             </div>
 
@@ -283,12 +392,13 @@ const TeacherProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <IoCalendarOutline />
               </div>
+
               <div>
                 <p className="text-xs text-slate-500 font-semibold">
                   Joined On
                 </p>
                 <p className="text-sm font-bold text-slate-800">
-                  June 15, 2017
+                  {formatJoinedDate(teacher.createdAt)}
                 </p>
               </div>
             </div>
@@ -313,9 +423,11 @@ const TeacherProfile = () => {
                 <p className="text-sm font-semibold text-slate-500">
                   {card.title}
                 </p>
+
                 <h2 className="text-3xl font-black text-slate-900 mt-1">
                   {card.value}
                 </h2>
+
                 <p className={`text-xs font-semibold mt-1 ${card.text}`}>
                   ↑ {card.desc}
                 </p>
@@ -398,10 +510,6 @@ const TeacherProfile = () => {
                 Subjects & Classes
               </h2>
             </div>
-
-            <button className="text-sm text-blue-600 font-bold">
-              View All
-            </button>
           </div>
 
           <table className="w-full">
@@ -411,7 +519,7 @@ const TeacherProfile = () => {
                   Subject
                 </th>
                 <th className="px-3 py-3 text-xs font-bold text-slate-500">
-                  Class / Section
+                  Class
                 </th>
                 <th className="px-3 py-3 text-xs font-bold text-slate-500">
                   Students
@@ -420,31 +528,43 @@ const TeacherProfile = () => {
             </thead>
 
             <tbody>
-              {subjects.map((item, index) => (
-                <tr
-                  key={index}
-                  className="border-b border-slate-100 last:border-b-0"
-                >
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm ${item.color}`}
-                      >
-                        <IoBookOutline />
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {item.subject}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-sm font-semibold text-slate-600">
-                    {item.classSection}
-                  </td>
-                  <td className="px-3 py-3 text-sm font-bold text-slate-700">
-                    {item.students}
+              {assignedClasses.length > 0 ? (
+                assignedClasses.map((item, index) => (
+                  <tr
+                    key={`${item.className}-${item.subject}-${index}`}
+                    className="border-b border-slate-100 last:border-b-0"
+                  >
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+                          <IoBookOutline />
+                        </span>
+
+                        <span className="text-sm font-semibold text-slate-700">
+                          {item.subject}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-3 text-sm font-semibold text-slate-600">
+                      {item.className}
+                    </td>
+
+                    <td className="px-3 py-3 text-sm font-bold text-slate-700">
+                      32
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="3"
+                    className="px-3 py-5 text-center text-sm text-slate-400"
+                  >
+                    No classes assigned
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -466,12 +586,15 @@ const TeacherProfile = () => {
                   <h3 className="text-sm font-black text-slate-800">
                     {item.degree}
                   </h3>
+
                   <p className="text-sm text-slate-500 mt-1">
                     {item.university}
                   </p>
                 </div>
 
-                <p className="text-sm font-bold text-slate-600">{item.year}</p>
+                <p className="text-sm font-bold text-slate-600">
+                  {item.year}
+                </p>
               </div>
             ))}
           </div>
@@ -484,10 +607,12 @@ const TeacherProfile = () => {
           </div>
 
           <p className="text-sm text-slate-600 leading-7">
-            Passionate science educator with 7+ years of experience in inspiring
-            students to explore and understand the world of science. I believe
-            in creating engaging, hands-on learning experiences that encourage
-            curiosity, critical thinking, and a love for learning.
+            Passionate educator with {teacher.experience || "0"} years of
+            experience. Handles{" "}
+            {uniqueSubjects.length > 0
+              ? uniqueSubjects.join(", ")
+              : "assigned subjects"}{" "}
+            and supports students across assigned classes.
           </p>
         </div>
 
@@ -499,23 +624,19 @@ const TeacherProfile = () => {
                 Weekly Availability
               </h2>
             </div>
-
-            <button className="text-sm text-blue-600 font-bold">
-              View Timetable
-            </button>
           </div>
 
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            {schedule.map((item, index) => (
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
               <div
                 key={index}
                 className="border border-slate-100 rounded-xl p-3 text-center bg-slate-50"
               >
-                <h3 className="text-sm font-black text-slate-800">
-                  {item.day}
-                </h3>
+                <h3 className="text-sm font-black text-slate-800">{day}</h3>
                 <p className="text-xs text-slate-500 mt-2 leading-5">
-                  {item.time}
+                  {day === "Sat"
+                    ? "08:00 AM - 12:00 PM"
+                    : "08:00 AM - 04:00 PM"}
                 </p>
               </div>
             ))}
@@ -527,6 +648,109 @@ const TeacherProfile = () => {
           </div>
         </div>
       </div>
+
+      {editOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[999] flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-black text-slate-900">
+                Edit Profile
+              </h2>
+
+              <button
+                onClick={() => setEditOpen(false)}
+                className="text-2xl text-slate-400 hover:text-slate-700"
+              >
+                <IoCloseOutline />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleUpdateProfile}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <input
+                type="text"
+                name="name"
+                value={editData.name}
+                onChange={handleEditChange}
+                placeholder="Name"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="photo"
+                value={editData.photo}
+                onChange={handleEditChange}
+                placeholder="Photo URL"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="email"
+                name="email"
+                value={editData.email}
+                onChange={handleEditChange}
+                placeholder="Email"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="contact"
+                value={editData.contact}
+                onChange={handleEditChange}
+                placeholder="Phone"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="location"
+                value={editData.location}
+                onChange={handleEditChange}
+                placeholder="Location"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="department"
+                value={editData.department}
+                onChange={handleEditChange}
+                placeholder="Department"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="designation"
+                value={editData.designation}
+                onChange={handleEditChange}
+                placeholder="Designation"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <input
+                type="text"
+                name="experience"
+                value={editData.experience}
+                onChange={handleEditChange}
+                placeholder="Experience"
+                className="h-11 px-4 rounded-xl border border-slate-200 outline-none text-sm"
+              />
+
+              <button
+                type="submit"
+                className="md:col-span-2 h-11 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700"
+              >
+                Update Profile
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

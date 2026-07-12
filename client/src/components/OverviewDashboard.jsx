@@ -1,241 +1,706 @@
-import React from 'react';
-import { PieChart, LineChart } from '@mui/x-charts';
-import { 
-  CalendarCheck, 
-  GraduationCap, 
-  FileText, 
-  Calendar, 
-  Clock, 
-  ArrowUpRight, 
-  TrendingUp, 
+import React, { useEffect, useMemo, useState } from "react";
+import { PieChart, LineChart } from "@mui/x-charts";
+
+import {
+  CalendarCheck,
+  GraduationCap,
+  FileText,
+  Calendar,
+  Clock,
+  TrendingUp,
   Info,
-  CreditCard,
   Megaphone,
   Trophy,
-  Sun,
-  FlaskConical
-} from 'lucide-react';
+  FlaskConical,
+  BookOpen,
+  BarChart2,
+  ChevronRight,
+  User,
+  PartyPopper,
+  CalendarDays,
+} from "lucide-react";
 
-const OverviewDashboard = () => {
+import {
+  getAttendanceAPI,
+  getExamAPI,
+  getResultAPI,
+  getNoticeAPI,
+  getTimetableAPI,
+} from "../services/allAPI";
 
-  // 1. Dataset  Pie Chart
-  const pieData = [
-    { id: 0, value: 3.7, label: 'Physics', color: '#3B82F6', grade: 'A' },
-    { id: 1, value: 3.3, label: 'Chemistry', color: '#10B981', grade: 'A-' },
-    { id: 2, value: 3.8, label: 'Mathematics', color: '#F59E0B', grade: 'A' },
-    { id: 3, value: 3.1, label: 'English', color: '#38BDF8', grade: 'B+' },
-    { id: 4, value: 3.9, label: 'Computer Science', color: '#818CF8', grade: 'A' }
+const OverviewDashboard = ({ studentData, onNavigate }) => {
+  const [attendanceList, setAttendanceList] = useState([]);
+  const [examsList, setExamsList] = useState([]);
+  const [resultsList, setResultsList] = useState([]);
+  const [noticesList, setNoticesList] = useState([]);
+  const [timetableList, setTimetableList] = useState([]);
+
+  const normalizeClassName = (value = "") => {
+    const cleanValue = String(value).trim().toUpperCase().replace(/\s+/g, "");
+
+    if (!cleanValue) return "";
+
+    if (cleanValue.startsWith("CLASS")) return cleanValue;
+
+    return `CLASS${cleanValue}`;
+  };
+
+  const normalizeStudent = (student) => {
+    if (!student) return null;
+
+    return {
+      id: student.id || "",
+      studentId:
+        student.studentId ||
+        student.student_id ||
+        student.admissionNo ||
+        student.idNumber ||
+        "",
+      name:
+        student.name ||
+        student.studentName ||
+        student.student_name ||
+        "Student",
+      className:
+        student.className ||
+        student.class ||
+        student.student_class ||
+        student.classSection ||
+        "",
+      rollNo: student.rollNo || student.roll || student.student_rollno || "",
+    };
+  };
+
+  const getLoggedStudent = () => {
+    if (studentData) return normalizeStudent(studentData);
+
+    const storedStudent = localStorage.getItem("studentData");
+
+    if (storedStudent) {
+      try {
+        return normalizeStudent(JSON.parse(storedStudent));
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    return {
+      id: localStorage.getItem("studentDbId") || "",
+      studentId: localStorage.getItem("studentId") || "",
+      name: "Student",
+      className: localStorage.getItem("studentClass") || "",
+      rollNo: "",
+    };
+  };
+
+  const student = getLoggedStudent();
+
+  const normalizeAttendance = (attendance) => {
+    return {
+      id: attendance.id,
+      studentDbId: attendance.studentDbId || "",
+      studentId: attendance.studentId || attendance.student_id || "",
+      studentName: attendance.studentName || attendance.student_name || "",
+      className: attendance.className || attendance.class || "",
+      date: attendance.date || "",
+      day: attendance.day || "",
+      status: attendance.status || "Not Marked",
+    };
+  };
+
+  const normalizeExam = (exam) => {
+    return {
+      id: exam.id,
+      examId: exam.examId || exam.exam_id || "",
+      title: exam.title || exam.examTitle || exam.name || "",
+      className: exam.className || exam.class || "",
+      subject: exam.subject || "",
+      examType: exam.examType || exam.type || "",
+      term: exam.term || "",
+      date: exam.date || "",
+      startTime: exam.startTime || exam.time || "",
+      endTime: exam.endTime || "",
+      maxMarks: exam.maxMarks || exam.max_marks || "",
+      status: exam.status || "Upcoming",
+    };
+  };
+
+  const normalizeResult = (result) => {
+    return {
+      id: result.id,
+      resultId: result.resultId || result.result_id || "",
+      studentDbId: result.studentDbId || "",
+      studentId: result.studentId || result.student_id || "",
+      studentName: result.studentName || result.student_name || "",
+      className: result.className || result.class || "",
+      examTitle: result.examTitle || result.exam || result.examName || "",
+      subject: result.subject || "",
+      obtainedMarks: Number(result.obtainedMarks || result.obtained_marks || 0),
+      maxMarks: Number(result.maxMarks || result.max_marks || 0),
+      percentage: Number(result.percentage || 0),
+      grade: result.grade || "",
+      status: result.status || "Published",
+      publishedDate: result.publishedDate || result.published_date || "",
+    };
+  };
+
+  const normalizeNotice = (notice) => {
+    return {
+      id: notice.id,
+      noticeId: notice.noticeId || notice.notice_id || "",
+      title: notice.title || "",
+      description: notice.description || notice.content || "",
+      category: notice.category || "General",
+      audience: notice.audience || "All",
+      status: notice.status || "Active",
+      date: notice.date || notice.createdDate || notice.createdAt || "",
+      createdBy: notice.createdBy || notice.author || "Principal",
+      createdAt: notice.createdAt || "",
+      updatedAt: notice.updatedAt || "",
+      isImportant:
+        notice.isImportant ||
+        notice.category === "Urgent" ||
+        notice.priority === "High",
+    };
+  };
+
+  const normalizePeriod = (period) => {
+    return {
+      id: period.id,
+      timetableId: period.timetableId || period.timetable_id || "",
+      day: period.day || "",
+      startTime: period.startTime || period.start_time || "",
+      endTime: period.endTime || period.end_time || "",
+      className: period.className || period.class || "",
+      subject: period.subject || "",
+      teacherName: period.teacherName || period.teacher_name || "",
+      room: period.room || "",
+      periodType: period.periodType || period.period_type || "Class",
+      status: period.status || "Active",
+    };
+  };
+
+  const getAllDashboardData = async () => {
+    const attendanceResult = await getAttendanceAPI();
+    const examResult = await getExamAPI();
+    const resultResult = await getResultAPI();
+    const noticeResult = await getNoticeAPI();
+    const timetableResult = await getTimetableAPI();
+
+    if (attendanceResult?.status >= 200 && attendanceResult?.status < 300) {
+      setAttendanceList(
+        Array.isArray(attendanceResult.data) ? attendanceResult.data : []
+      );
+    }
+
+    if (examResult?.status >= 200 && examResult?.status < 300) {
+      setExamsList(Array.isArray(examResult.data) ? examResult.data : []);
+    }
+
+    if (resultResult?.status >= 200 && resultResult?.status < 300) {
+      setResultsList(Array.isArray(resultResult.data) ? resultResult.data : []);
+    }
+
+    if (noticeResult?.status >= 200 && noticeResult?.status < 300) {
+      setNoticesList(Array.isArray(noticeResult.data) ? noticeResult.data : []);
+    }
+
+    if (timetableResult?.status >= 200 && timetableResult?.status < 300) {
+      setTimetableList(
+        Array.isArray(timetableResult.data) ? timetableResult.data : []
+      );
+    }
+  };
+
+  useEffect(() => {
+    getAllDashboardData();
+  }, []);
+
+  const studentAttendance = useMemo(() => {
+    return attendanceList
+      .map((attendance) => normalizeAttendance(attendance))
+      .filter(
+        (attendance) =>
+          String(attendance.studentDbId) === String(student.id) ||
+          String(attendance.studentId) === String(student.studentId)
+      )
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [attendanceList, student.id, student.studentId]);
+
+  const studentExams = useMemo(() => {
+    return examsList
+      .map((exam) => normalizeExam(exam))
+      .filter(
+        (exam) =>
+          exam.status !== "Draft" &&
+          normalizeClassName(exam.className) ===
+            normalizeClassName(student.className)
+      )
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [examsList, student.className]);
+
+  const studentResults = useMemo(() => {
+    return resultsList
+      .map((result) => normalizeResult(result))
+      .filter(
+        (result) =>
+          result.status === "Published" &&
+          (String(result.studentDbId) === String(student.id) ||
+            String(result.studentId) === String(student.studentId))
+      )
+      .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
+  }, [resultsList, student.id, student.studentId]);
+
+  const studentNotices = useMemo(() => {
+    return noticesList
+      .map((notice) => normalizeNotice(notice))
+      .filter((notice) => {
+        if (notice.status !== "Active") return false;
+
+        const audience = String(notice.audience || "").trim().toLowerCase();
+
+        if (audience === "all") return true;
+        if (audience === "students") return true;
+        if (audience === "student") return true;
+
+        return (
+          normalizeClassName(notice.audience) ===
+          normalizeClassName(student.className)
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt || b.date) -
+          new Date(a.updatedAt || a.createdAt || a.date)
+      );
+  }, [noticesList, student.className]);
+
+  const studentTimetable = useMemo(() => {
+    return timetableList
+      .map((period) => normalizePeriod(period))
+      .filter(
+        (period) =>
+          period.status !== "Inactive" &&
+          normalizeClassName(period.className) ===
+            normalizeClassName(student.className)
+      )
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [timetableList, student.className]);
+
+  const presentCount = studentAttendance.filter(
+    (attendance) =>
+      attendance.status === "Present" || attendance.status === "Late"
+  ).length;
+
+  const attendancePercentage =
+    studentAttendance.length > 0
+      ? ((presentCount / studentAttendance.length) * 100).toFixed(1)
+      : "0.0";
+
+  const totalObtainedMarks = studentResults.reduce(
+    (total, result) => total + Number(result.obtainedMarks || 0),
+    0
+  );
+
+  const totalMaxMarks = studentResults.reduce(
+    (total, result) => total + Number(result.maxMarks || 0),
+    0
+  );
+
+  const overallPercentage =
+    totalMaxMarks > 0
+      ? ((totalObtainedMarks / totalMaxMarks) * 100).toFixed(1)
+      : "0.0";
+
+  const currentGpa = totalMaxMarks > 0 ? (overallPercentage / 25).toFixed(2) : "0.00";
+
+  const calculateGrade = (percentage) => {
+    const value = Number(percentage);
+
+    if (value >= 90) return "A+";
+    if (value >= 75) return "A";
+    if (value >= 60) return "B";
+    if (value >= 45) return "C";
+    return "D";
+  };
+
+  const overallGrade =
+    totalMaxMarks > 0 ? calculateGrade(overallPercentage) : "N/A";
+
+  const todayName = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+  });
+
+  const todayDate = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    weekday: "short",
+  });
+
+  const todaySchedule = studentTimetable.filter(
+    (period) => period.day === todayName
+  );
+
+  const upcomingExams = studentExams.filter((exam) => {
+    if (exam.status === "Completed") return false;
+
+    const examDate = new Date(exam.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(examDate.getTime())) return exam.status === "Upcoming";
+
+    return examDate >= today;
+  });
+
+  const attendanceTrendPoints = useMemo(() => {
+    if (studentAttendance.length === 0) {
+      return [{ date: "No Data", percentage: 0 }];
+    }
+
+    let present = 0;
+
+    return studentAttendance
+      .map((record, index) => {
+        if (record.status === "Present" || record.status === "Late") {
+          present += 1;
+        }
+
+        const percentage = ((present / (index + 1)) * 100).toFixed(1);
+
+        const date = new Date(record.date);
+
+        return {
+          date: isNaN(date.getTime())
+            ? record.date
+            : date.toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+              }),
+          percentage: Number(percentage),
+        };
+      })
+      .slice(-6);
+  }, [studentAttendance]);
+
+  const xLabels = attendanceTrendPoints.map((point) => point.date);
+  const lineSeriesData = attendanceTrendPoints.map((point) => point.percentage);
+
+  const attendanceImprovement =
+    attendanceTrendPoints.length > 1
+      ? (
+          attendanceTrendPoints[attendanceTrendPoints.length - 1].percentage -
+          attendanceTrendPoints[0].percentage
+        ).toFixed(1)
+      : "0.0";
+
+  const subjectPerformance = useMemo(() => {
+    const grouped = {};
+
+    studentResults.forEach((result) => {
+      if (!result.subject) return;
+
+      if (!grouped[result.subject]) {
+        grouped[result.subject] = {
+          subject: result.subject,
+          obtained: 0,
+          max: 0,
+        };
+      }
+
+      grouped[result.subject].obtained += Number(result.obtainedMarks || 0);
+      grouped[result.subject].max += Number(result.maxMarks || 0);
+    });
+
+    const colors = ["#3B82F6", "#10B981", "#F59E0B", "#38BDF8", "#818CF8"];
+
+    return Object.values(grouped).map((item, index) => {
+      const percentage =
+        item.max > 0 ? ((item.obtained / item.max) * 100).toFixed(1) : "0.0";
+
+      return {
+        id: index,
+        value: Number((Number(percentage) / 25).toFixed(1)),
+        label: item.subject,
+        color: colors[index % colors.length],
+        grade: calculateGrade(percentage),
+        percentage,
+      };
+    });
+  }, [studentResults]);
+
+  const pieData =
+    subjectPerformance.length > 0
+      ? subjectPerformance
+      : [
+          {
+            id: 0,
+            value: 1,
+            label: "No Results",
+            color: "#CBD5E1",
+            grade: "N/A",
+            percentage: "0.0",
+          },
+        ];
+
+  const latestNotices = studentNotices.slice(0, 3);
+  const latestResults = studentResults.slice(0, 3);
+
+  const getNoticeIcon = (category) => {
+    if (category === "Event") return <PartyPopper size={14} />;
+    if (category === "Holiday") return <CalendarDays size={14} />;
+    if (category === "Exam") return <FileText size={14} />;
+    if (category === "Academics") return <FlaskConical size={14} />;
+    return <Megaphone size={14} />;
+  };
+
+  const getNoticeIconStyle = (category) => {
+    if (category === "Event") return "bg-emerald-50 text-emerald-600";
+    if (category === "Holiday") return "bg-amber-50 text-amber-600";
+    if (category === "Exam") return "bg-blue-50 text-blue-600";
+    if (category === "Academics") return "bg-purple-50 text-purple-600";
+    if (category === "Urgent") return "bg-red-50 text-red-600";
+    return "bg-slate-50 text-slate-600";
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Not added";
+
+    const date = new Date(dateValue);
+
+    if (isNaN(date.getTime())) return dateValue;
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const handleNavigate = (page) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
+
+  const metrics = [
+    {
+      title: "Attendance Percentage",
+      value: `${attendancePercentage}%`,
+      label: `${presentCount}/${studentAttendance.length} days present`,
+      icon: <CalendarCheck size={20} />,
+      bg: "bg-blue-50 text-blue-600",
+      action: "attendance",
+      extra: (
+        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+          <TrendingUp size={10} /> {attendanceImprovement >= 0 ? "↑" : "↓"}{" "}
+          {Math.abs(attendanceImprovement)}%
+          <span className="text-slate-400 font-medium"> trend</span>
+        </span>
+      ),
+    },
+    {
+      title: "Current GPA",
+      value: currentGpa,
+      label: "/ 4.00",
+      icon: <GraduationCap size={20} />,
+      bg: "bg-emerald-50 text-emerald-600",
+      action: "results",
+      extra: (
+        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Grade: {overallGrade}
+        </span>
+      ),
+    },
+    {
+      title: "Active Notices",
+      value: studentNotices.length,
+      label: "announcements",
+      icon: <Megaphone size={20} />,
+      bg: "bg-amber-50 text-amber-600",
+      action: "notice",
+      extra: (
+        <span className="text-[10px] text-amber-600 font-bold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          From Principal
+        </span>
+      ),
+    },
+    {
+      title: "Upcoming Exams",
+      value: upcomingExams.length,
+      label:
+        upcomingExams.length > 0
+          ? `Next: ${upcomingExams[0].subject}`
+          : "No exams",
+      icon: <Calendar size={20} />,
+      bg: "bg-purple-50 text-purple-600",
+      action: "exams",
+      extra: (
+        <span className="text-[10px] text-purple-600 font-bold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          Scheduled exams
+        </span>
+      ),
+    },
   ];
-
-  // 2. Dataset  Line Chart
-
-  const attendanceTrendPoints = [
-    { date: 'Apr 28', percentage: 78 },
-    { date: 'May 5', percentage: 82 },
-    { date: 'May 12', percentage: 79 },
-    { date: 'May 19', percentage: 84 },
-    { date: 'May 23', percentage: 92.4 },
-    { date: 'May 26', percentage: 95 }
-  ];
-
-  const xLabels = attendanceTrendPoints.map(point => point.date);
-  const lineSeriesData = attendanceTrendPoints.map(point => point.percentage);
 
   return (
-    <div className='space-y-6 animate-fadeIn text-left pb-8 select-none'>
-      
-      
-      <div className='space-y-1'>
-        <h1 className='text-2xl font-black text-slate-900 tracking-tight'>Student Dashboard</h1>
-        <p className='text-xs text-slate-400 font-semibold'>
-          Welcome back, Arjun! 👏 Keep up the great work and continue your learning journey.
+    <div className="space-y-6 animate-fadeIn text-left pb-8 select-none">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          Student Dashboard
+        </h1>
+        <p className="text-xs text-slate-400 font-semibold">
+          Welcome back, {student.name || "Student"}! 👏 Keep up the great work
+          and continue your learning journey.
         </p>
       </div>
 
-     
-      <section className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-        
-        <div className='bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between relative overflow-hidden'>
-          <div className='flex items-center gap-3.5'>
-            <span className='w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm'>
-              <CalendarCheck size={20} />
-            </span>
-            <div className='space-y-0.5'>
-              <span className='text-[11px] text-slate-400 font-bold tracking-wide block uppercase'>Attendance Percentage</span>
-              <div className='flex items-baseline gap-1.5'>
-                <span className='text-xl font-black text-slate-900'>92.4%</span>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {metrics.map((item, index) => (
+          <button
+            key={index}
+            onClick={() => handleNavigate(item.action)}
+            className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between relative overflow-hidden text-left hover:shadow-md transition-all"
+          >
+            <div className="flex items-center gap-3.5">
+              <span
+                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${item.bg}`}
+              >
+                {item.icon}
+              </span>
+
+              <div className="space-y-0.5">
+                <span className="text-[11px] text-slate-400 font-bold tracking-wide block uppercase">
+                  {item.title}
+                </span>
+
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black text-slate-900">
+                    {item.value}
+                  </span>
+
+                  {item.title === "Current GPA" && (
+                    <span className="text-xs font-bold text-slate-400">
+                      {item.label}
+                    </span>
+                  )}
+                </div>
+
+                {item.title !== "Current GPA" && (
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {item.label}
+                  </span>
+                )}
+
+                {item.extra}
               </div>
-              <span className='text-[10px] text-emerald-600 font-bold flex items-center gap-0.5'>
-                <TrendingUp size={10} /> ↑ 4.3% <span className='text-slate-400 font-medium'>this month</span>
-              </span>
             </div>
-          </div>
-          <div className='w-16 h-8 opacity-40 shrink-0 self-end mb-1'>
-            <svg viewBox="0 0 60 20" className="w-full h-full stroke-blue-500 stroke-[2] fill-none">
-              <path d="M0,15 Q15,5 30,12 T60,2" />
-            </svg>
-          </div>
-        </div>
 
-        
-        <div className='bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between'>
-          <div className='flex items-center gap-3.5'>
-            <span className='w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-sm'>
-              <GraduationCap size={20} />
-            </span>
-            <div className='space-y-0.5'>
-              <span className='text-[11px] text-slate-400 font-bold tracking-wide block uppercase'>Current GPA</span>
-              <div className='flex items-baseline gap-0.5'>
-                <span className='text-xl font-black text-slate-900'>3.68</span>
-                <span className='text-xs font-bold text-slate-400'>/ 4.00</span>
+            {item.title === "Attendance Percentage" && (
+              <div className="w-16 h-8 opacity-40 shrink-0 self-end mb-1 hidden xl:block">
+                <svg
+                  viewBox="0 0 60 20"
+                  className="w-full h-full stroke-blue-500 stroke-[2] fill-none"
+                >
+                  <path d="M0,15 Q15,5 30,12 T60,2" />
+                </svg>
               </div>
-              <span className='text-[10px] text-emerald-600 font-bold flex items-center gap-1.5'>
-                <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' /> Good Standing
-              </span>
-            </div>
-          </div>
-        </div>
-
-       
-        <div className='bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between'>
-          <div className='flex items-center gap-3.5'>
-            <span className='w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-sm'>
-              <FileText size={20} />
-            </span>
-            <div className='space-y-0.5'>
-              <span className='text-[11px] text-slate-400 font-bold tracking-wide block uppercase'>Pending Assignments</span>
-              <span className='text-xl font-black text-slate-900 block'>3</span>
-              <span className='text-[10px] text-amber-600 font-bold flex items-center gap-1.5'>
-                <span className='w-1.5 h-1.5 rounded-full bg-amber-500' /> Due soon
-              </span>
-            </div>
-          </div>
-        </div>
-
-       
-        <div className='bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between'>
-          <div className='flex items-center gap-3.5'>
-            <span className='w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-sm'>
-              <Calendar size={20} />
-            </span>
-            <div className='space-y-0.5'>
-              <span className='text-[11px] text-slate-400 font-bold tracking-wide block uppercase'>Upcoming Exams</span>
-              <span className='text-xl font-black text-slate-900 block'>2</span>
-              <span className='text-[10px] text-purple-600 font-bold flex items-center gap-1.5'>
-                <span className='w-1.5 h-1.5 rounded-full bg-purple-500' /> Next: Mathematics
-              </span>
-            </div>
-          </div>
-        </div>
+            )}
+          </button>
+        ))}
       </section>
 
-     
-      <section className='grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch'>
-        
-       
-        <div className='xl:col-span-4 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Clock size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Today's Timetable</h3>
+      <section className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+        <div className="xl:col-span-5 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Today&apos;s Timetable
+              </h3>
             </div>
-            <span className='text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md'>
-              May 23, 2024 (Thu)
-            </span>
+
+            <button
+              onClick={() => handleNavigate("timetable")}
+              className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+            >
+              View All <ChevronRight size={12} />
+            </button>
           </div>
 
-          <div className='flex-1 overflow-x-auto overflow-y-hidden'>
-            <table className='w-full text-left text-[11px] font-medium text-slate-500 min-w-[300px]'>
+          <span className="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md w-fit">
+            {todayDate}
+          </span>
+
+          <div className="flex-1 overflow-x-auto overflow-y-hidden">
+            <table className="w-full text-left text-[11px] font-medium text-slate-500 min-w-[520px]">
               <thead>
-                <tr className='border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider'>
-                  <th className='pb-2 font-bold'>Period</th>
-                  <th className='pb-2 font-bold'>Time</th>
-                  <th className='pb-2 font-bold'>Subject</th>
-                  <th className='pb-2 font-bold'>Room</th>
-                  <th className='pb-2 font-bold'>Teacher</th>
+                <tr className="border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                  <th className="pb-2 font-bold">Period</th>
+                  <th className="pb-2 font-bold">Time</th>
+                  <th className="pb-2 font-bold">Subject</th>
+                  <th className="pb-2 font-bold">Room</th>
+                  <th className="pb-2 font-bold">Teacher</th>
                 </tr>
               </thead>
-              <tbody className='divide-y divide-slate-50/50'>
-                <tr className='hover:bg-slate-50/30'><td className='py-2.5 font-bold text-slate-900'>1</td><td className='py-2.5 text-slate-400'>08:00 AM - 08:50 AM</td><td className='py-2.5 text-slate-700 font-semibold'>Physics</td><td className='py-2.5'>Lab 2</td><td className='py-2.5'>Mr. Verma</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-2.5 font-bold text-slate-900'>2</td><td className='py-2.5 text-slate-400'>08:50 AM - 09:40 AM</td><td className='py-2.5 text-slate-700 font-semibold'>Chemistry</td><td className='py-2.5'>Lab 1</td><td className='py-2.5'>Ms. Iyer</td></tr>
-                <tr className='bg-blue-50/40 text-blue-600 font-bold'><td className='py-1.5'>☕</td><td className='py-1.5 text-[10px]'>09:40 AM - 09:55 AM</td><td colSpan={3} className='py-1.5 text-[10px] tracking-wide uppercase font-black text-left pl-2'>Short Break</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-2.5 font-bold text-slate-900'>3</td><td className='py-2.5 text-slate-400'>09:55 AM - 10:45 AM</td><td className='py-2.5 text-slate-700 font-semibold'>Mathematics</td><td className='py-2.5'>Room 204</td><td className='py-2.5'>Mr. Rao</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-2.5 font-bold text-slate-900'>4</td><td className='py-2.5 text-slate-400'>10:45 AM - 11:35 AM</td><td className='py-2.5 text-slate-700 font-semibold'>English</td><td className='py-2.5'>Room 101</td><td className='py-2.5'>Ms. D'Souza</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-2.5 font-bold text-slate-900'>5</td><td className='py-2.5 text-slate-400'>11:35 AM - 12:25 PM</td><td className='py-2.5 text-slate-700 font-semibold'>Computer Science</td><td className='py-2.5'>Lab 3</td><td className='py-2.5'>Mr. Khan</td></tr>
+
+              <tbody className="divide-y divide-slate-50/50">
+                {todaySchedule.length > 0 ? (
+                  todaySchedule.slice(0, 6).map((period, index) => (
+                    <tr key={period.id} className="hover:bg-slate-50/30">
+                      <td className="py-2.5 font-bold text-slate-900">
+                        {period.periodType === "Break" ? "☕" : index + 1}
+                      </td>
+                      <td className="py-2.5 text-slate-400">
+                        {period.startTime} - {period.endTime}
+                      </td>
+                      <td className="py-2.5 text-slate-700 font-semibold">
+                        {period.subject || period.periodType}
+                      </td>
+                      <td className="py-2.5">{period.room || "Not added"}</td>
+                      <td className="py-2.5">
+                        {period.teacherName || "Teacher"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="py-10 text-center text-slate-400"
+                    >
+                      No classes scheduled today.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        
-        <div className='xl:col-span-5 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <FileText size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Upcoming Assignments</h3>
+        <div className="xl:col-span-4 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GraduationCap size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Subject Performance
+              </h3>
             </div>
-            <span className='text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors'>View All</span>
+
+            <button
+              onClick={() => handleNavigate("results")}
+              className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+            >
+              View Details <ChevronRight size={12} />
+            </button>
           </div>
 
-          <div className='flex-1 overflow-x-auto overflow-y-hidden'>
-            <table className='w-full text-left text-[11px] font-medium text-slate-500 min-w-[340px]'>
-              <thead>
-                <tr className='border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider'>
-                  <th className='pb-2 font-bold'>Subject</th>
-                  <th className='pb-2 font-bold'>Assignment</th>
-                  <th className='pb-2 font-bold'>Due Date</th>
-                  <th className='pb-2 font-bold text-right'>Status</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-slate-50/50 text-slate-700'>
-                <tr className='hover:bg-slate-50/30'>
-                  <td className='py-3 font-semibold text-slate-900'>Physics</td>
-                  <td className='py-3 text-slate-500 font-medium'>Numericals – Chapter 6</td>
-                  <td className='py-3 text-slate-400'>May 25, 2024</td>
-                  <td className='py-3 text-right'><span className='px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 text-[9px] font-bold tracking-wide uppercase border border-amber-100/40'>Due Soon</span></td>
-                </tr>
-                <tr className='hover:bg-slate-50/30'>
-                  <td className='py-3 font-semibold text-slate-900'>Chemistry</td>
-                  <td className='py-3 text-slate-500 font-medium'>Lab Report – Titration</td>
-                  <td className='py-3 text-slate-400'>May 27, 2024</td>
-                  <td className='py-3 text-right'><span className='px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 text-[9px] font-bold tracking-wide uppercase border border-amber-100/40'>Due Soon</span></td>
-                </tr>
-                <tr className='hover:bg-slate-50/30'>
-                  <td className='py-3 font-semibold text-slate-900'>English</td>
-                  <td className='py-3 text-slate-500 font-medium'>Essay Writing</td>
-                  <td className='py-3 text-slate-400'>May 30, 2024</td>
-                  <td className='py-3 text-right'><span className='px-2 py-0.5 rounded-md bg-blue-50 text-blue-500 text-[9px] font-bold tracking-wide uppercase border border-blue-100/40'>Not Started</span></td>
-                </tr>
-                <tr className='hover:bg-slate-50/30'>
-                  <td className='py-3 font-semibold text-slate-900'>Mathematics</td>
-                  <td className='py-3 text-slate-500 font-medium'>Problem Set – Calculus</td>
-                  <td className='py-3 text-slate-400'>Jun 02, 2024</td>
-                  <td className='py-3 text-right'><span className='px-2 py-0.5 rounded-md bg-blue-50 text-blue-500 text-[9px] font-bold tracking-wide uppercase border border-blue-100/40'>Not Started</span></td>
-                </tr>
-                <tr className='hover:bg-slate-50/30'>
-                  <td className='py-3 font-semibold text-slate-900'>Computer Science</td>
-                  <td className='py-3 text-slate-500 font-medium'>Python Programming</td>
-                  <td className='py-3 text-slate-400'>Jun 05, 2024</td>
-                  <td className='py-3 text-right'><span className='px-2 py-0.5 rounded-md bg-blue-50 text-blue-500 text-[9px] font-bold tracking-wide uppercase border border-blue-100/40'>Not Started</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        
-        <div className='xl:col-span-3 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <GraduationCap size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Subject Performance</h3>
-            </div>
-            <span className='text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors'>View Details</span>
-          </div>
-
-          <div className='flex-1 flex flex-col sm:flex-row xl:flex-col items-center justify-center gap-3 py-2'>
-            {/* Material UI PieChart Configured as Donut */}
-            <div className='relative w-32 h-32 flex items-center justify-center shrink-0'>
+          <div className="flex-1 flex flex-col sm:flex-row xl:flex-col items-center justify-center gap-3 py-2">
+            <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
               <PieChart
                 series={[
                   {
@@ -248,182 +713,96 @@ const OverviewDashboard = () => {
                 ]}
                 width={128}
                 height={128}
-                slotProps={{ legend: { hidden: true } }} 
+                slotProps={{ legend: { hidden: true } }}
                 margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               />
-              <div className='absolute text-center space-y-0.5 pointer-events-none'>
-                <span className='text-xl font-black text-slate-900 tracking-tight block'>3.68</span>
-                <span className='text-[9px] text-slate-400 font-bold bg-slate-50 border border-slate-100/80 px-1.5 py-0.5 rounded-md uppercase tracking-wider block'>Scale 4.0</span>
+
+              <div className="absolute text-center space-y-0.5 pointer-events-none">
+                <span className="text-xl font-black text-slate-900 tracking-tight block">
+                  {currentGpa}
+                </span>
+                <span className="text-[9px] text-slate-400 font-bold bg-slate-50 border border-slate-100/80 px-1.5 py-0.5 rounded-md uppercase tracking-wider block">
+                  Scale 4.0
+                </span>
               </div>
             </div>
 
-           
-            <div className='w-full space-y-2 text-[11px] font-semibold text-slate-500 pl-2'>
+            <div className="w-full space-y-2 text-[11px] font-semibold text-slate-500 pl-2">
               {pieData.map((item) => (
-                <div key={item.id} className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <span className='w-2 h-2 rounded-full shrink-0' style={{ backgroundColor: item.color }} />
-                    <span className='text-slate-600 font-medium truncate max-w-[90px]'>{item.label}</span>
+                <div key={item.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-slate-600 font-medium truncate max-w-[120px]">
+                      {item.label}
+                    </span>
                   </div>
-                  <div className='flex gap-4 shrink-0'>
-                    <span className='font-bold text-slate-900'>{item.grade}</span>
-                    <span className='text-slate-400 font-bold w-6 text-right'>{item.value.toFixed(1)}</span>
+
+                  <div className="flex gap-4 shrink-0">
+                    <span className="font-bold text-slate-900">
+                      {item.grade}
+                    </span>
+                    <span className="text-slate-400 font-bold w-6 text-right">
+                      {Number(item.value).toFixed(1)}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </section>
 
-      <section className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch'>
-        
-        
-        <div className='lg:col-span-3 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Megaphone size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Announcements</h3>
-            </div>
-            <span className='text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors'>View All</span>
-          </div>
-
-          <div className='flex-1 space-y-3.5 text-xs'>
-            <div className='flex gap-3 items-start border-b border-slate-50 pb-3'>
-              <span className='w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0'><Trophy size={14} /></span>
-              <div className='space-y-1'>
-                <div className='flex items-center gap-2'><h4 className='font-bold text-slate-900 text-[11px]'>Sports Day – 2024</h4><span className='px-1.5 bg-blue-600 text-white font-bold text-[8px] rounded-md uppercase tracking-wide scale-90 origin-left'>New</span></div>
-                <p className='text-[10px] text-slate-400 font-normal leading-relaxed'>Sports Day will be held on May 31, 2024. All students are invited.</p>
-                <span className='text-[9px] text-slate-400 block font-medium'>May 22, 2024</span>
-              </div>
+        <div className="xl:col-span-3 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarCheck size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Attendance Trend
+              </h3>
             </div>
 
-            <div className='flex gap-3 items-start border-b border-slate-50 pb-3'>
-              <span className='w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0'><Sun size={14} /></span>
-              <div className='space-y-1'>
-                <h4 className='font-bold text-slate-900 text-[11px]'>Summer Break Notice</h4>
-                <p className='text-[10px] text-slate-400 font-normal leading-relaxed'>The school will remain closed from June 10 to June 20.</p>
-                <span className='text-[9px] text-slate-400 block font-medium'>May 20, 2024</span>
-              </div>
-            </div>
-
-            <div className='flex gap-3 items-start'>
-              <span className='w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0'><FlaskConical size={14} /></span>
-              <div className='space-y-1'>
-                <h4 className='font-bold text-slate-900 text-[11px]'>Science Exhibition</h4>
-                <p className='text-[10px] text-slate-400 font-normal leading-relaxed'>Submit your projects by May 28, 2024.</p>
-                <span className='text-[9px] text-slate-400 block font-medium'>May 18, 2024</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-       
-        <div className='lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Calendar size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Upcoming Exams</h3>
-            </div>
-            <span className='text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors'>View All</span>
+            <button
+              onClick={() => handleNavigate("attendance")}
+              className="text-[10px] font-bold text-slate-400 flex items-center gap-1 hover:text-slate-600 cursor-pointer"
+            >
+              View All <ChevronRight size={12} />
+            </button>
           </div>
 
-          <div className='flex-1 overflow-x-auto overflow-y-hidden'>
-            <table className='w-full text-left text-[11px] font-medium text-slate-500 min-w-[260px]'>
-              <thead>
-                <tr className='border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider'>
-                  <th className='pb-2 font-bold'>Exam</th>
-                  <th className='pb-2 font-bold'>Subject</th>
-                  <th className='pb-2 font-bold'>Date</th>
-                  <th className='pb-2 font-bold text-right'>Time</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-slate-50/50 text-slate-700'>
-                <tr className='hover:bg-slate-50/30'><td className='py-3 text-slate-400 font-normal'>Unit Test – 2</td><td className='py-3 font-semibold text-slate-900'>Mathematics</td><td className='py-3'>May 28, 2024</td><td className='py-3 text-right text-slate-400'>09:00 AM</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-3 text-slate-400 font-normal'>Unit Test – 2</td><td className='py-3 font-semibold text-slate-900'>Physics</td><td className='py-3'>May 31, 2024</td><td className='py-3 text-right text-slate-400'>09:00 AM</td></tr>
-                <tr className='hover:bg-slate-50/30'><td className='py-3 text-slate-400 font-normal'>Unit Test – 2</td><td className='py-3 font-semibold text-slate-900'>Chemistry</td><td className='py-3'>Jun 04, 2024</td><td className='py-3 text-right text-slate-400'>09:00 AM</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className='bg-blue-50/70 border border-blue-100/40 rounded-xl p-2.5 flex items-center gap-2 text-[10px] text-blue-700 font-semibold'>
-            <Info size={14} className='shrink-0 text-blue-500' />
-            <span>Prepare well and ace your exams! 💪</span>
-          </div>
-        </div>
-
-        
-        <div className='lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center gap-2'>
-            <CreditCard size={16} className='text-blue-600' />
-            <h3 className='text-sm font-black text-slate-900 tracking-tight'>Fee Status</h3>
-          </div>
-
-          <div className='flex-1 flex flex-col justify-center space-y-4 py-1'>
-            <div className='grid grid-cols-3 gap-2 text-center text-[10px] font-bold'>
-              <div className='space-y-1'><span className='text-slate-400 block uppercase font-bold text-[9px] tracking-wide'>Total Fees</span><span className='text-slate-900 text-xs font-black'>₹ 60,000</span></div>
-              <div className='space-y-1'><span className='text-slate-400 block uppercase font-bold text-[9px] tracking-wide'>Paid</span><span className='text-emerald-600 text-xs font-black'>₹ 48,000</span></div>
-              <div className='space-y-1'><span className='text-slate-400 block uppercase font-bold text-[9px] tracking-wide'>Due</span><span className='text-rose-500 text-xs font-black'>₹ 12,000</span></div>
-            </div>
-
-            <div className='space-y-1.5'>
-              <div className='flex items-center justify-between text-[10px] font-bold'>
-                <span className='text-slate-400 font-medium'>Payment Progress</span>
-                <span className='text-blue-600 font-bold'>80%</span>
-              </div>
-              <div className='w-full h-2 bg-slate-100 rounded-full overflow-hidden'>
-                <div className='h-full bg-blue-600 rounded-full transition-all' style={{ width: '80%' }} />
-              </div>
-            </div>
-            
-          </div>
-
-          <button className='w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-blue-600/10 flex items-center justify-center gap-1.5 transition-all cursor-pointer'>
-            <ArrowUpRight size={14} /> Pay Now
-          </button>
-        </div>
-
-       
-        <div className='md:col-span-2 lg:col-span-3 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <CalendarCheck size={16} className='text-blue-600' />
-              <h3 className='text-sm font-black text-slate-900 tracking-tight'>Attendance Trend</h3>
-            </div>
-            <span className='text-[10px] font-bold text-slate-400 flex items-center gap-1 hover:text-slate-600 cursor-pointer'>
-              This Month <span>▾</span>
-            </span>
-          </div>
-
-          
-          <div className='flex-1 flex flex-col justify-end w-full h-32'>
+          <div className="flex-1 flex flex-col justify-end w-full h-32">
             <LineChart
-              xAxis={[{ 
-                data: xLabels, 
-                scaleType: 'point',
-                sx: {
-                  '& .MuiChartsAxis-label, & .MuiChartsAxis-tickLabel': {
-                    fill: '#94A3B8 !important',
-                    fontWeight: '700 !important',
-                    fontSize: '9px !important',
-                  }
-                }
-              }]}
-              yAxis={[{
-                min: 60,
-                max: 100,
-                sx: {
-                  '& .MuiChartsAxis-tickLabel': {
-                    fill: '#94A3B8 !important',
-                    fontWeight: '700 !important',
-                    fontSize: '9px !important',
-                  }
-                }
-              }]}
+              xAxis={[
+                {
+                  data: xLabels,
+                  scaleType: "point",
+                  sx: {
+                    "& .MuiChartsAxis-label, & .MuiChartsAxis-tickLabel": {
+                      fill: "#94A3B8 !important",
+                      fontWeight: "700 !important",
+                      fontSize: "9px !important",
+                    },
+                  },
+                },
+              ]}
+              yAxis={[
+                {
+                  min: 0,
+                  max: 100,
+                  sx: {
+                    "& .MuiChartsAxis-tickLabel": {
+                      fill: "#94A3B8 !important",
+                      fontWeight: "700 !important",
+                      fontSize: "9px !important",
+                    },
+                  },
+                },
+              ]}
               series={[
                 {
                   data: lineSeriesData,
-                  color: '#3B82F6',
+                  color: "#3B82F6",
                   area: false,
                   showMark: true,
                 },
@@ -434,14 +813,242 @@ const OverviewDashboard = () => {
             />
           </div>
 
-         
-          <div className='text-center border-t border-slate-50/60 pt-2 text-[10px] font-bold text-emerald-600 flex items-center justify-center gap-1'>
-            <TrendingUp size={12} /> ↑ 4.3% <span className='text-slate-400 font-medium'>improvement from last month</span>
+          <div className="text-center border-t border-slate-50/60 pt-2 text-[10px] font-bold text-emerald-600 flex items-center justify-center gap-1">
+            <TrendingUp size={12} /> {attendanceImprovement >= 0 ? "↑" : "↓"}{" "}
+            {Math.abs(attendanceImprovement)}%
+            <span className="text-slate-400 font-medium">
+              attendance trend
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Megaphone size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Announcements
+              </h3>
+            </div>
+
+            <button
+              onClick={() => handleNavigate("notice")}
+              className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+            >
+              View All <ChevronRight size={12} />
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-3.5 text-xs">
+            {latestNotices.length > 0 ? (
+              latestNotices.map((notice, index) => (
+                <div
+                  key={notice.id}
+                  className={`flex gap-3 items-start ${
+                    index !== latestNotices.length - 1
+                      ? "border-b border-slate-50 pb-3"
+                      : ""
+                  }`}
+                >
+                  <span
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${getNoticeIconStyle(
+                      notice.category
+                    )}`}
+                  >
+                    {getNoticeIcon(notice.category)}
+                  </span>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-900 text-[11px]">
+                        {notice.title}
+                      </h4>
+
+                      {index === 0 && (
+                        <span className="px-1.5 bg-blue-600 text-white font-bold text-[8px] rounded-md uppercase tracking-wide scale-90 origin-left">
+                          New
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-400 font-normal leading-relaxed line-clamp-2">
+                      {notice.description}
+                    </p>
+
+                    <span className="text-[9px] text-slate-400 block font-medium">
+                      {formatDate(notice.date)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-400 text-center py-8">
+                No announcements found.
+              </p>
+            )}
           </div>
         </div>
 
+        <div className="lg:col-span-5 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Upcoming Exams
+              </h3>
+            </div>
+
+            <button
+              onClick={() => handleNavigate("exams")}
+              className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+            >
+              View All <ChevronRight size={12} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-x-auto overflow-y-hidden">
+            <table className="w-full text-left text-[11px] font-medium text-slate-500 min-w-[360px]">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                  <th className="pb-2 font-bold">Exam</th>
+                  <th className="pb-2 font-bold">Subject</th>
+                  <th className="pb-2 font-bold">Date</th>
+                  <th className="pb-2 font-bold text-right">Time</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-50/50 text-slate-700">
+                {upcomingExams.length > 0 ? (
+                  upcomingExams.slice(0, 5).map((exam) => (
+                    <tr key={exam.id} className="hover:bg-slate-50/30">
+                      <td className="py-3 text-slate-400 font-normal">
+                        {exam.examType || exam.title}
+                      </td>
+                      <td className="py-3 font-semibold text-slate-900">
+                        {exam.subject}
+                      </td>
+                      <td className="py-3">{formatDate(exam.date)}</td>
+                      <td className="py-3 text-right text-slate-400">
+                        {exam.startTime || "Not added"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="py-10 text-center text-slate-400"
+                    >
+                      No upcoming exams found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-blue-50/70 border border-blue-100/40 rounded-xl p-2.5 flex items-center gap-2 text-[10px] text-blue-700 font-semibold">
+            <Info size={14} className="shrink-0 text-blue-500" />
+            <span>Prepare well and ace your exams! 💪</span>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 lg:col-span-3 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart2 size={16} className="text-blue-600" />
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                Recent Results
+              </h3>
+            </div>
+
+            <button
+              onClick={() => handleNavigate("results")}
+              className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+            >
+              View All <ChevronRight size={12} />
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-3">
+            {latestResults.length > 0 ? (
+              latestResults.map((result) => (
+                <div
+                  key={result.id}
+                  className="bg-slate-50 border border-slate-100 rounded-xl p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black text-slate-900">
+                        {result.subject}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                        {result.examTitle}
+                      </p>
+                    </div>
+
+                    <span className="px-2 py-1 rounded-lg bg-green-50 text-green-600 text-[10px] font-black">
+                      {result.grade || calculateGrade(result.percentage)}
+                    </span>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 font-semibold mt-2">
+                    {result.obtainedMarks}/{result.maxMarks} •{" "}
+                    {result.percentage}%
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-400 text-center py-8">
+                No published results yet.
+              </p>
+            )}
+          </div>
+        </div>
       </section>
 
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-8 bg-blue-600 rounded-2xl p-5 text-white shadow-sm">
+          <div className="flex items-start gap-4">
+            <span className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Trophy size={22} />
+            </span>
+
+            <div>
+              <h3 className="text-lg font-black">Keep Going!</h3>
+              <p className="text-sm text-blue-100 mt-1 leading-6">
+                Check your attendance, timetable, exams, results and notices
+                regularly to stay updated.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-2xl shadow-sm p-5">
+          <div className="flex items-start gap-4">
+            <span className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+              <User size={20} />
+            </span>
+
+            <div>
+              <p className="text-sm font-black text-slate-900">
+                Student Details
+              </p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                Roll No: {student.rollNo || "Not added"}
+              </p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                Class: {student.className || "Not added"}
+              </p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                ID: {student.studentId || "Not added"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

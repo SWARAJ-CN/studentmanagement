@@ -1,37 +1,11 @@
 {
-  "principal": [
-    {
-      "fullName": "swaraj",
-      "email": "swaraj@gmail.com",
-      "username": "swaraj1",
-      "password": "swaraj",
-      "confirmPassword": "swaraj",
-      "id": "1"
-    }
-  ],
-  "teachers": [
-    {
-      "teacherId": "TCH816",
-      "name": "eeee",
-      "photo": "222222",
-      "class": "222222",
-      "subject": "22222",
-      "experience": "2222",
-      "contact": "2222",
-      "status": "On leave",
-      "id": "Xj9G46Ey55M"
-    }
-  ],
-  "notices": [
-    {
-      "noticeId": "NTC471",
-      "title": "PTA Meeting",
-      "category": "Event",
-      "date": "2026-06-30",
-      "audience": "All",
-      "status": "Active",
-      "id": "1"
-    }
-  ],
+  "principal": [],
+  "teachers": [],
+  "students": [],
+  "attendance": [],
+  "exams": [],
+  "results": [],
+  "timetables": [],
+  "notices": [],
   "$schema": "./node_modules/json-server/schema.json"
 }

@@ -21,11 +21,11 @@ import MyClasses from './teacher/pages/MyClasses'
 import TeacherStudents from './teacher/pages/TeacherStudents';
 import TeacherAttendance from './teacher/pages/TeacherAttendance';
 import TeacherExams from './teacher/pages/TeacherExams';
-import TeacherResults from './teacher/pages/TeacherAttendance';
+import TeacherResults from './teacher/pages/TeacherResults';
 import TeacherTimetable from './teacher/pages/TeacherTimetable';
 import TeacherNotices from './teacher/pages/TeacherNotices';
 
-// principale 
+// principle 
 import PrincipalLogin from './principal/pages/PrincipalLogin';
 import PrincipalRegister from './principal/pages/PrincipalRegister';
 import Dashboard from './principal/pages/Dashboard';

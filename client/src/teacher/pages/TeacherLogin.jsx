@@ -18,33 +18,77 @@ import { LuClipboardCheck } from "react-icons/lu";
 import { FaTrophy } from "react-icons/fa";
 import { IoIosNotifications } from "react-icons/io";
 
+import { getTeacherAPI } from "../../services/allAPI";
+
 const TeacherLogin = () => {
   const navigate = useNavigate();
 
   const [teacherId, setTeacherId] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const clearTeacherLoginData = () => {
+    localStorage.removeItem("teacherAuth");
+    localStorage.removeItem("teacherId");
+    localStorage.removeItem("teacherDbId");
+    localStorage.removeItem("teacherData");
+    localStorage.removeItem("rememberTeacher");
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!teacherId || !password) {
+    if (!teacherId.trim() || !password.trim()) {
       toast.error("Please enter Teacher ID and password");
       return;
     }
 
-    // Temporary login for testing teacher side
-    localStorage.setItem("teacherAuth", "true");
-    localStorage.setItem("teacherId", teacherId);
+    try {
+      setIsLoading(true);
 
-    if (rememberMe) {
-      localStorage.setItem("rememberTeacher", "true");
-    } else {
-      localStorage.removeItem("rememberTeacher");
+      const result = await getTeacherAPI();
+
+      if (result?.status >= 200 && result?.status < 300) {
+        const teachers = Array.isArray(result.data) ? result.data : [];
+
+        const matchedTeacher = teachers.find(
+          (teacher) =>
+            teacher.teacherId?.trim().toLowerCase() ===
+              teacherId.trim().toLowerCase() &&
+            teacher.password?.trim() === password.trim()
+        );
+
+        if (!matchedTeacher) {
+          clearTeacherLoginData();
+          toast.error("Invalid Teacher ID or password");
+          return;
+        }
+
+        localStorage.setItem("teacherAuth", "true");
+        localStorage.setItem("teacherId", matchedTeacher.teacherId);
+        localStorage.setItem("teacherDbId", matchedTeacher.id);
+        localStorage.setItem("teacherData", JSON.stringify(matchedTeacher));
+
+        if (rememberMe) {
+          localStorage.setItem("rememberTeacher", "true");
+        } else {
+          localStorage.removeItem("rememberTeacher");
+        }
+
+        toast.success("Teacher login successful");
+        navigate("/teacher/dashboard");
+      } else {
+        clearTeacherLoginData();
+        toast.error("Unable to login. Please try again");
+      }
+    } catch (error) {
+      console.log(error);
+      clearTeacherLoginData();
+      toast.error("Server error. Please check JSON Server");
+    } finally {
+      setIsLoading(false);
     }
-
-    toast.success("Teacher login successful");
-    navigate("/teacher/dashboard");
   };
 
   const leftFeatures = [
@@ -112,7 +156,6 @@ const TeacherLogin = () => {
           <div className="absolute bottom-10 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl -z-0"></div>
 
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Content */}
             <div className="lg:col-span-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-tight">
                 Teacher Login
@@ -148,7 +191,6 @@ const TeacherLogin = () => {
               </div>
             </div>
 
-            {/* Center Image */}
             <div className="lg:col-span-4 flex justify-center">
               <img
                 src={teacherLoginImg}
@@ -157,7 +199,6 @@ const TeacherLogin = () => {
               />
             </div>
 
-            {/* Login Form */}
             <div className="lg:col-span-4 flex justify-center lg:justify-end">
               <div className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-xl shadow-blue-200/50 border border-white p-7 sm:p-8">
                 <div className="flex justify-center">
@@ -237,10 +278,15 @@ const TeacherLogin = () => {
 
                   <button
                     type="submit"
-                    className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                    className={`w-full h-12 rounded-xl text-white font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 ${
+                      isLoading
+                        ? "bg-blue-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                   >
                     <CiLock className="text-xl" />
-                    Login
+                    {isLoading ? "Checking..." : "Login"}
                   </button>
 
                   <div className="flex items-center gap-4">
@@ -261,7 +307,6 @@ const TeacherLogin = () => {
             </div>
           </div>
 
-          {/* Bottom Features */}
           <div className="relative z-10 mt-10 max-w-7xl mx-auto bg-white rounded-3xl shadow-xl shadow-blue-200/40 border border-slate-100 px-5 py-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {bottomFeatures.map((item, index) => (
