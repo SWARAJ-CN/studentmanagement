@@ -1,5 +1,14 @@
 {
-  "principal": [],
+  "principal": [
+    {
+      "fullName": "Rajmohan",
+      "email": "rajmohan@gmail.com",
+      "username": "rajmohan1",
+      "password": "12345678",
+      "confirmPassword": "12345678",
+      "id": "iCiXw5FIF_0"
+    }
+  ],
   "teachers": [],
   "students": [],
   "attendance": [],
